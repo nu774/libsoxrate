@@ -1,0 +1,7 @@
+LIBRARY
+EXPORTS
+    lsx_rate_create
+    lsx_rate_close
+    lsx_rate_config
+    lsx_rate_start
+    lsx_rate_process
