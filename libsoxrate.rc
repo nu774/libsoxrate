@@ -1,8 +1,8 @@
 #include <winver.h>
 
 VS_VERSION_INFO		VERSIONINFO
-  FILEVERSION		0,0,2,0
-  PRODUCTVERSION	0,0,2,0
+  FILEVERSION		0,0,3,0
+  PRODUCTVERSION	0,0,3,0
   FILEFLAGSMASK		VS_FFI_FILEFLAGSMASK
 #ifdef _DEBUG
   FILEFLAGS		1
@@ -18,13 +18,12 @@ BEGIN
     //language ID = U.S. English, char set = Windows, Multilingual
     BEGIN
       VALUE "FileDescription",	"SoX rate converter library.\0"
-      VALUE "FileVersion",	"0.0.2\0"
+      VALUE "FileVersion",	"0.0.3\0"
       VALUE "InternalName",	"libsoxrate.dll\0"
-      VALUE "LegalCopyright",	"(C) 2008 robs@users.sourceforge.net, (C) 2011 nu774\0"
+      VALUE "LegalCopyright",	"(C)2008 robs@users.sourceforge.net,(C)2011 nu774\0"
       VALUE "OriginalFilename",	"libsoxrate.dll\0"
       VALUE "ProductName",	"libsoxrate\0"
-      VALUE "ProductVersion",	"0.0.2\0"
-      VALUE "Comments",		"\0"
+      VALUE "ProductVersion",	"0.0.3\0"
     END
   END
   BLOCK "VarFileInfo"

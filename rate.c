@@ -229,7 +229,7 @@ typedef struct {
 
 typedef enum {Default = -1, Quick, Low, Medium, High, Very} quality_t;
 
-void rate_init(rate_t * p, rate_shared_t * shared, double factor,
+static void rate_init(rate_t * p, rate_shared_t * shared, double factor,
     quality_t quality, int interp_order, double phase, double bandwidth,
     sox_bool allow_aliasing)
 {
@@ -359,7 +359,7 @@ void rate_init(rate_t * p, rate_shared_t * shared, double factor,
   }
 }
 
-void rate_process(rate_t * p)
+static void rate_process(rate_t * p)
 {
   stage_t * stage = p->stages + p->input_stage_num;
   int i;
@@ -368,20 +368,20 @@ void rate_process(rate_t * p)
     stage->fn(stage, &(stage+1)->fifo);
 }
 
-sample_t * rate_input(rate_t * p, sample_t const * samples, size_t n)
+static sample_t * rate_input(rate_t * p, sample_t const * samples, size_t n)
 {
   p->samples_in += n;
   return fifo_write(&p->stages[p->input_stage_num].fifo, (int)n, samples);
 }
 
-sample_t const * rate_output(rate_t * p, sample_t * samples, size_t * n)
+static sample_t const * rate_output(rate_t * p, sample_t * samples, size_t * n)
 {
   fifo_t * fifo = &p->stages[p->output_stage_num].fifo;
   p->samples_out += *n = min(*n, (size_t)fifo_occupancy(fifo));
   return fifo_read(fifo, (int)*n, samples);
 }
 
-void rate_flush(rate_t * p)
+static void rate_flush(rate_t * p)
 {
   fifo_t * fifo = &p->stages[p->output_stage_num].fifo;
   size_t samples_out = p->samples_in / p->factor + .5;
@@ -399,7 +399,7 @@ void rate_flush(rate_t * p)
   free(buff);
 }
 
-void rate_close(rate_t * p)
+static void rate_close(rate_t * p)
 {
   rate_shared_t * shared = p->stages[0].shared;
   int i;

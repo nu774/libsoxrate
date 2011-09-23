@@ -50,7 +50,7 @@ struct lsx_rate_state_tag {
     per_channel_state_t pcs[1];
 };
 
-static void start_workers(lsx_rate_t *state);
+static int start_workers(lsx_rate_t *state);
 static void stop_workers(lsx_rate_t *state);
 static void fire_and_wait_workers(lsx_rate_t *state);
 static unsigned __stdcall worker_thread(void *arg);
@@ -115,14 +115,14 @@ int lsx_rate_config(lsx_rate_t *state, enum lsx_rate_config_e type, ...)
     return err;
 }
 
-void lsx_rate_start(lsx_rate_t *state)
+int lsx_rate_start(lsx_rate_t *state)
 {
     int i;
     for (i = 0; i < state->nchannels; ++i)
 	rate_init(&state->pcs[i].rate, &state->shared, state->factor,
 		  state->quality, -1, state->phase, state->bandwidth,
 		  state->allow_aliasing);
-    start_workers(state);
+    return start_workers(state);
 }
 
 size_t lsx_rate_process(lsx_rate_t *state, const float *ibuf, float *obuf,
@@ -162,16 +162,20 @@ static void flow_channel(per_channel_state_t *pcs)
     pcs->olen = odone;
 }
 
-static void start_workers(lsx_rate_t *state)
+static int start_workers(lsx_rate_t *state)
 {
     int i;
     for (i = 0; i < state->nchannels; ++i) {
 	thread_state_t *ts = &state->pcs[i].th;
-	ts->evpro = CreateEventW(0, 0, 0, 0);
-	ts->evcon = CreateEventW(0, 0, 0, 0);
-	ts->ht = _beginthreadex(0, 0, worker_thread,
-				&state->pcs[i], 0, &ts->tid);
+	if (!(ts->evpro = CreateEventW(0, 0, 0, 0)))
+	    return -1;
+	if (!(ts->evcon = CreateEventW(0, 0, 0, 0)))
+	    return -1;
+	if (!(ts->ht = _beginthreadex(0, 0, worker_thread,
+				&state->pcs[i], 0, &ts->tid)))
+	    return -1;
     }
+    return 0;
 }
 
 static void stop_workers(lsx_rate_t *state)
@@ -195,7 +199,7 @@ static void fire_and_wait_workers(lsx_rate_t *state)
 
     events = _alloca(sizeof(HANDLE) * state->nchannels);
     for (i = 0; i < state->nchannels; ++i) {
-	if (state->pcs[i].th.tid) {
+	if (state->pcs[i].th.ht) {
 	    SetEvent(state->pcs[i].th.evpro);
 	    events[n++] = state->pcs[i].th.evcon;
 	}

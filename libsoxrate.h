@@ -50,6 +50,7 @@ void lsx_rate_close(lsx_rate_t *state);
  * 2nd parameter("type") is one of lsx_rate_config_e.
  * 3rd parameter varies with 2nd parameter.
  * Basically it is an integer, but SOX_RATE_BANDWIDTH takes double.
+ * returns 0 on success, -1 on error (means parameter is invalid and ignored)
  */
 int lsx_rate_config(lsx_rate_t *state, enum lsx_rate_config_e type, ...);
 
@@ -57,8 +58,9 @@ int lsx_rate_config(lsx_rate_t *state, enum lsx_rate_config_e type, ...);
  * lsx_rate_start() must be called before lsx_process().
  * This actually starts worker threads (number of threads is equal to 
  * number of channels.
+ * returns 0 on success, -1 on error.
  */
-void lsx_rate_start(lsx_rate_t *state);
+int lsx_rate_start(lsx_rate_t *state);
 
 /*
  * Actual rate conversion routine.
