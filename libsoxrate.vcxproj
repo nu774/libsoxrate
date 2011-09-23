@@ -95,6 +95,9 @@
   <ItemGroup>
     <None Include="libsoxrate.def" />
   </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="libsoxrate.rc" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

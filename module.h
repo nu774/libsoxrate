@@ -182,23 +182,25 @@ static void stop_workers(lsx_rate_t *state)
     fire_and_wait_workers(state);
     for (n = 0; n < state->nchannels; ++n) {
 	thread_state_t *ts = &state->pcs[n].th;
-	CloseHandle(ts->ht);
-	CloseHandle(ts->evpro);
-	CloseHandle(ts->evcon);
+	if (ts->ht) CloseHandle(ts->ht);
+	if (ts->evpro) CloseHandle(ts->evpro);
+	if (ts->evcon) CloseHandle(ts->evcon);
     }
 }
 
 static void fire_and_wait_workers(lsx_rate_t *state)
 {
-    int i;
+    int i, n = 0;
     HANDLE *events;
 
     events = _alloca(sizeof(HANDLE) * state->nchannels);
     for (i = 0; i < state->nchannels; ++i) {
-	SetEvent(state->pcs[i].th.evpro);
-	events[i] = state->pcs[i].th.evcon;
+	if (state->pcs[i].th.tid) {
+	    SetEvent(state->pcs[i].th.evpro);
+	    events[n++] = state->pcs[i].th.evcon;
+	}
     }
-    WaitForMultipleObjects(state->nchannels, events, TRUE, INFINITE);
+    if (n) WaitForMultipleObjects(n, events, TRUE, INFINITE);
 }
 
 static unsigned __stdcall worker_thread(void *arg)
