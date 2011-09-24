@@ -30,6 +30,7 @@ typedef struct thread_state_tag {
     HANDLE evpro, evcon;
     unsigned tid;
     sox_bool done;
+    sox_bool error;
 } thread_state_t;
 
 typedef struct per_channel_state_tag {
@@ -52,7 +53,7 @@ struct lsx_rate_state_tag {
 
 static int start_workers(lsx_rate_t *state);
 static int stop_workers(lsx_rate_t *state);
-static int fire_and_wait_workers(lsx_rate_t *state);
+static int fire_and_wait_workers(lsx_rate_t *state, sox_bool join);
 static unsigned __stdcall worker_thread(void *arg);
 
 #define HANDLE_NO_MEMORY \
@@ -154,8 +155,11 @@ int lsx_rate_process(lsx_rate_t *state, const float *ibuf, float *obuf,
 	    state->pcs[n].olen = min(*olen, RATE_BUFSIZE);
 	    if (!count) rate_flush(&state->pcs[n].rate);
 	}
-	if (fire_and_wait_workers(state) < 0)
+	if (fire_and_wait_workers(state, sox_false) < 0)
 	    return -1;
+	for (n = 0; n < state->nchannels; ++n)
+	    if (state->pcs[n].th.error)
+		return -1;
 	for (i = 0; i < state->pcs[0].olen; ++i)
 	    for (n = 0; n < state->nchannels; ++n)
 		obuf[j++] = state->pcs[n].obuf[i];
@@ -206,8 +210,8 @@ static int stop_workers(lsx_rate_t *state)
 {
     int n;
     for (n = 0; n < state->nchannels; ++n)
-	state->pcs[n].th.done = 1;
-    if (fire_and_wait_workers(state) < 0)
+	state->pcs[n].th.done = sox_true;
+    if (fire_and_wait_workers(state, sox_true) < 0)
 	return -1;
     for (n = 0; n < state->nchannels; ++n) {
 	thread_state_t *ts = &state->pcs[n].th;
@@ -219,18 +223,18 @@ static int stop_workers(lsx_rate_t *state)
     return 0;
 }
 
-static int fire_and_wait_workers(lsx_rate_t *state)
+static int fire_and_wait_workers(lsx_rate_t *state, sox_bool join)
 {
     int i, n = 0;
     HANDLE *events;
 
-    events = _alloca(sizeof(HANDLE) * state->nchannels);
-    if (!events)
+    if ((events = _alloca(sizeof(HANDLE) * state->nchannels)) == 0)
 	return -1;
     for (i = 0; i < state->nchannels; ++i) {
-	if (state->pcs[i].th.ht) {
-	    SetEvent(state->pcs[i].th.evpro);
-	    events[n++] = state->pcs[i].th.evcon;
+	thread_state_t *ts = &state->pcs[i].th;
+	if (ts->ht) {
+	    SetEvent(ts->evpro);
+	    events[n++] = join ? ts->ht : ts->evcon;
 	}
     }
     if (n) WaitForMultipleObjects(n, events, TRUE, INFINITE);
@@ -243,7 +247,8 @@ static unsigned __stdcall worker_thread(void *arg)
     while (WaitForSingleObject(pcs->th.evpro, INFINITE) == WAIT_OBJECT_0) {
 	if (pcs->th.done)
 	    break;
-	flow_channel(pcs);
+	if (flow_channel(pcs) < 0)
+	    pcs->th.error = sox_true;
 	SetEvent(pcs->th.evcon);
     }
     SetEvent(pcs->th.evcon);
