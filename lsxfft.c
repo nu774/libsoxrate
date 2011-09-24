@@ -43,8 +43,8 @@ static void update_fft_cache(fft_cache_t *cp, int len)
   if (len > cp->len) {
     int old_n = cp->len;
     cp->len = len;
-    cp->br = realloc(cp->br, dft_br_len(len) * sizeof(cp->br[0]));
-    cp->sc = realloc(cp->sc, dft_sc_len(len) * sizeof(cp->sc[0]));
+    cp->br = lsx_realloc(cp->br, dft_br_len(len) * sizeof(cp->br[0]));
+    cp->sc = lsx_realloc(cp->sc, dft_sc_len(len) * sizeof(cp->sc[0]));
     if (!old_n)
       cp->br[0] = 0;
   }

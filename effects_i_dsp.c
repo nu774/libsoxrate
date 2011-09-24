@@ -68,7 +68,7 @@ static void lsx_apply_kaiser(double h[], const int num_points, double beta)
 static double * lsx_make_lpf(int num_taps, double Fc, double beta, double scale, sox_bool dc_norm)
 {
   int i, m = num_taps - 1;
-  double * h = malloc(num_taps * sizeof(*h)), sum = 0;
+  double * h = lsx_malloc(num_taps * sizeof(*h)), sum = 0;
   double mult = scale / lsx_bessel_I_0(beta);
   assert(Fc >= 0 && Fc <= 1);
   for (i = 0; i <= m / 2; ++i) {
@@ -136,8 +136,8 @@ void lsx_fir_to_phase(double * * h, int * len, int * post_len, double phase, fft
 
   for (i = *len, work_len = 2 * 2 * 8; i > 1; work_len <<= 1, i >>= 1);
 
-  work = calloc((size_t)work_len + 2, sizeof(*work)); /* +2: (UN)PACK */
-  pi_wraps = malloc((((size_t)work_len + 2) / 2) * sizeof(*pi_wraps));
+  work = lsx_calloc((size_t)work_len + 2, sizeof(*work)); /* +2: (UN)PACK */
+  pi_wraps = lsx_malloc((((size_t)work_len + 2) / 2) * sizeof(*pi_wraps));
 
   memcpy(work, *h, *len * sizeof(*work));
   lsx_safe_rdft(work_len, 1, work, cache); /* Cepstral: */
@@ -208,7 +208,7 @@ void lsx_fir_to_phase(double * * h, int * len, int * post_len, double phase, fft
     begin = peak - begin - (begin & 1);
     end   = peak + 1 + end + (end & 1);
     *len = end - begin;
-    *h = realloc(*h, *len * sizeof(**h));
+    *h = lsx_realloc(*h, *len * sizeof(**h));
   }
   for (i = 0; i < *len; ++i) (*h)[i] =
     work[(begin + (phase > 50 ? *len - 1 - i : i) + work_len) & (work_len - 1)];

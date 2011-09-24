@@ -76,6 +76,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="alloc.c" />
     <ClCompile Include="effects_i_dsp.c" />
     <ClCompile Include="fft4g.c" />
     <ClCompile Include="lsxfft.c" />

@@ -51,9 +51,12 @@ struct lsx_rate_state_tag {
 };
 
 static int start_workers(lsx_rate_t *state);
-static void stop_workers(lsx_rate_t *state);
-static void fire_and_wait_workers(lsx_rate_t *state);
+static int stop_workers(lsx_rate_t *state);
+static int fire_and_wait_workers(lsx_rate_t *state);
 static unsigned __stdcall worker_thread(void *arg);
+
+#define HANDLE_NO_MEMORY \
+    GetExceptionCode() == STATUS_NO_MEMORY
 
 lsx_rate_t *lsx_rate_create(unsigned nchannels,
 	unsigned in_rate, unsigned out_rate)
@@ -64,8 +67,7 @@ lsx_rate_t *lsx_rate_create(unsigned nchannels,
     if (!nchannels || !in_rate || !out_rate)
 	return 0;
     off = sizeof(per_channel_state_t) * (nchannels - 1);
-    state = calloc(1, sizeof(lsx_rate_t) + off);
-    if (!state)
+    if ((state = lsx_calloc(1, sizeof(lsx_rate_t) + off)) == 0)
 	return 0;
     state->nchannels = nchannels;
     state->factor = (double)in_rate / out_rate;
@@ -74,13 +76,15 @@ lsx_rate_t *lsx_rate_create(unsigned nchannels,
     return state;
 }
 
-void lsx_rate_close(lsx_rate_t *state)
+int lsx_rate_close(lsx_rate_t *state)
 {
     int n;
-    stop_workers(state);
+    if (stop_workers(state) < 0)
+	return -1;
     for (n = 0; n < state->nchannels; ++n)
 	rate_close(&state->pcs[n].rate);
     free(state);
+    return 0;
 }
 
 int lsx_rate_config(lsx_rate_t *state, enum lsx_rate_config_e type, ...)
@@ -117,49 +121,69 @@ int lsx_rate_config(lsx_rate_t *state, enum lsx_rate_config_e type, ...)
 
 int lsx_rate_start(lsx_rate_t *state)
 {
-    int i;
-    for (i = 0; i < state->nchannels; ++i)
-	rate_init(&state->pcs[i].rate, &state->shared, state->factor,
-		  state->quality, -1, state->phase, state->bandwidth,
-		  state->allow_aliasing);
-    return start_workers(state);
+    int i, n;
+    __try {
+	for (i = 0; i < state->nchannels; ++i)
+	    rate_init(&state->pcs[i].rate, &state->shared, state->factor,
+		      state->quality, -1, state->phase, state->bandwidth,
+		      state->allow_aliasing);
+	if (start_workers(state) < 0) {
+	    stop_workers(state);
+	    for (n = 0; n < state->nchannels; ++n)
+		rate_close(&state->pcs[n].rate);
+	    return -1;
+	}
+	return 0;
+    } __except (HANDLE_NO_MEMORY) {
+	return -1;
+    }
 }
 
-size_t lsx_rate_process(lsx_rate_t *state, const float *ibuf, float *obuf,
+int lsx_rate_process(lsx_rate_t *state, const float *ibuf, float *obuf,
 	size_t *ilen, size_t *olen)
 {
     int n;
     size_t i, j = 0;
 
-    for (n = 0; n < state->nchannels; ++n) {
-	size_t count = ilen ? min(*ilen, RATE_BUFSIZE) : 0;
-	for (i = 0; i < count; ++i) 
-	    state->pcs[n].ibuf[i] = ibuf[state->nchannels * i + n];
-	state->pcs[n].ilen = count;
-	state->pcs[n].olen = min(*olen, RATE_BUFSIZE);
-	if (!count) rate_flush(&state->pcs[n].rate);
+    __try {
+	for (n = 0; n < state->nchannels; ++n) {
+	    size_t count = ilen ? min(*ilen, RATE_BUFSIZE) : 0;
+	    for (i = 0; i < count; ++i) 
+		state->pcs[n].ibuf[i] = ibuf[state->nchannels * i + n];
+	    state->pcs[n].ilen = count;
+	    state->pcs[n].olen = min(*olen, RATE_BUFSIZE);
+	    if (!count) rate_flush(&state->pcs[n].rate);
+	}
+	if (fire_and_wait_workers(state) < 0)
+	    return -1;
+	for (i = 0; i < state->pcs[0].olen; ++i)
+	    for (n = 0; n < state->nchannels; ++n)
+		obuf[j++] = state->pcs[n].obuf[i];
+	if (ilen && *ilen)
+	    *ilen = state->pcs[0].ilen;
+	*olen = state->pcs[0].olen;
+	return 0;
+    } __except (HANDLE_NO_MEMORY) {
+	return -1;
     }
-    fire_and_wait_workers(state);
-    for (i = 0; i < state->pcs[0].olen; ++i)
-	for (n = 0; n < state->nchannels; ++n)
-	    obuf[j++] = state->pcs[n].obuf[i];
-    if (ilen && *ilen)
-	*ilen = state->pcs[0].ilen;
-    *olen = state->pcs[0].olen;
-    return *olen;
 }
 
-static void flow_channel(per_channel_state_t *pcs)
+static int flow_channel(per_channel_state_t *pcs)
 {
-    size_t odone = pcs->olen;
-    rate_output(&pcs->rate, pcs->obuf, &odone);
-    if (!pcs->ilen || odone == pcs->olen)
-	pcs->ilen = 0;
-    else {
-	rate_input(&pcs->rate, pcs->ibuf, pcs->ilen);
-	rate_process(&pcs->rate);
+    __try {
+	size_t odone = pcs->olen;
+	rate_output(&pcs->rate, pcs->obuf, &odone);
+	if (!pcs->ilen || odone == pcs->olen)
+	    pcs->ilen = 0;
+	else {
+	    rate_input(&pcs->rate, pcs->ibuf, pcs->ilen);
+	    rate_process(&pcs->rate);
+	}
+	pcs->olen = odone;
+	return 0;
+    } __except (HANDLE_NO_MEMORY) {
+	return -1;
     }
-    pcs->olen = odone;
 }
 
 static int start_workers(lsx_rate_t *state)
@@ -178,26 +202,31 @@ static int start_workers(lsx_rate_t *state)
     return 0;
 }
 
-static void stop_workers(lsx_rate_t *state)
+static int stop_workers(lsx_rate_t *state)
 {
     int n;
     for (n = 0; n < state->nchannels; ++n)
 	state->pcs[n].th.done = 1;
-    fire_and_wait_workers(state);
+    if (fire_and_wait_workers(state) < 0)
+	return -1;
     for (n = 0; n < state->nchannels; ++n) {
 	thread_state_t *ts = &state->pcs[n].th;
 	if (ts->ht) CloseHandle(ts->ht);
 	if (ts->evpro) CloseHandle(ts->evpro);
 	if (ts->evcon) CloseHandle(ts->evcon);
+	memset(ts, 0, sizeof(thread_state_t));
     }
+    return 0;
 }
 
-static void fire_and_wait_workers(lsx_rate_t *state)
+static int fire_and_wait_workers(lsx_rate_t *state)
 {
     int i, n = 0;
     HANDLE *events;
 
     events = _alloca(sizeof(HANDLE) * state->nchannels);
+    if (!events)
+	return -1;
     for (i = 0; i < state->nchannels; ++i) {
 	if (state->pcs[i].th.ht) {
 	    SetEvent(state->pcs[i].th.evpro);
@@ -205,6 +234,7 @@ static void fire_and_wait_workers(lsx_rate_t *state)
 	}
     }
     if (n) WaitForMultipleObjects(n, events, TRUE, INFINITE);
+    return 0;
 }
 
 static unsigned __stdcall worker_thread(void *arg)

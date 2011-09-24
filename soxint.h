@@ -66,4 +66,8 @@ double * lsx_design_lpf(
     int k);         /* Number of phases; 0 for single-phase */
 void lsx_fir_to_phase(double * * h, int * len, int * post_len, double phase0, fft_cache_t *cache);
 
+void *lsx_malloc(size_t size);
+void *lsx_calloc(size_t nelem, size_t size);
+void *lsx_realloc(void *ptr, size_t size);
+
 #endif

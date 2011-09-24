@@ -35,7 +35,7 @@ static sample_t * prepare_coefs(raw_coef_t const * coefs, int num_coefs,
     int num_phases, int interp_order, int multiplier)
 {
   int i, j, length = num_coefs * num_phases;
-  sample_t * result = malloc(length * (interp_order + 1) * sizeof(*result));
+  sample_t * result = lsx_malloc(length * (interp_order + 1) * sizeof(*result));
   double fm1 = coefs[0], f1 = 0, f2 = 0;
 
   for (i = num_coefs - 1; i >= 0; --i)
@@ -186,7 +186,7 @@ static void half_band_filter_init(rate_shared_t * p, unsigned which,
     return;
   if (h) {
     dft_length = lsx_set_dft_length(num_taps);
-    f->coefs = calloc(dft_length, sizeof(*f->coefs));
+    f->coefs = lsx_calloc(dft_length, sizeof(*f->coefs));
     for (i = 0; i < num_taps; ++i)
       f->coefs[(i + dft_length - num_taps + 1) & (dft_length - 1)]
           = h[abs(num_taps / 2 - i)] / dft_length * 2 * multiplier;
@@ -200,7 +200,7 @@ static void half_band_filter_init(rate_shared_t * p, unsigned which,
     else f->post_peak = num_taps / 2;
 
     dft_length = lsx_set_dft_length(num_taps);
-    f->coefs = calloc(dft_length, sizeof(*f->coefs));
+    f->coefs = lsx_calloc(dft_length, sizeof(*f->coefs));
     for (i = 0; i < num_taps; ++i)
       f->coefs[(i + dft_length - num_taps + 1) & (dft_length - 1)]
           = h2[i] / dft_length * 2 * multiplier;
@@ -256,7 +256,7 @@ static void rate_init(rate_t * p, rate_shared_t * shared, double factor,
     }
   }
   memset(&p->cache, 0, sizeof(p->cache));
-  p->stages = (stage_t *)calloc((size_t)p->level + 4, sizeof(*p->stages)) + 1;
+  p->stages = (stage_t *)lsx_calloc((size_t)p->level + 4, sizeof(*p->stages)) + 1;
   for (i = -1; i <= p->level + 1; ++i) {
     p->stages[i].shared = shared;
     p->stages[i].cache = &p->cache;
@@ -386,7 +386,7 @@ static void rate_flush(rate_t * p)
   fifo_t * fifo = &p->stages[p->output_stage_num].fifo;
   size_t samples_out = p->samples_in / p->factor + .5;
   size_t remaining = samples_out - p->samples_out;
-  sample_t * buff = calloc(1024, sizeof(*buff));
+  sample_t * buff = lsx_calloc(1024, sizeof(*buff));
 
   if ((int)remaining > 0) {
     while ((size_t)fifo_occupancy(fifo) < remaining) {
