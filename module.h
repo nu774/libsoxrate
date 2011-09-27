@@ -22,6 +22,7 @@
 #define NOMINMAX
 #include <windows.h>
 #include "libsoxrate.h"
+#include "version.h"
 
 #define RATE_BUFSIZE 4096
 
@@ -58,6 +59,11 @@ static unsigned __stdcall worker_thread(void *arg);
 
 #define HANDLE_NO_MEMORY \
     GetExceptionCode() == STATUS_NO_MEMORY
+
+const char *lsx_rate_version_string(void)
+{
+    return SOXRATE_VERSION_STRING;
+}
 
 lsx_rate_t *lsx_rate_create(unsigned nchannels,
 	unsigned in_rate, unsigned out_rate)
