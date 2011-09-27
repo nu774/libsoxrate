@@ -1,5 +1,6 @@
 LIBRARY
 EXPORTS
+    lsx_rate_version_string
     lsx_rate_create
     lsx_rate_close
     lsx_rate_config
