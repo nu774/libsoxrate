@@ -24,7 +24,7 @@
 #include "libsoxrate.h"
 #include "version.h"
 
-#define RATE_BUFSIZE 4096
+#define RATE_BUFSIZE 0x4000
 
 typedef struct thread_state_tag {
     HANDLE ht;
@@ -42,12 +42,13 @@ typedef struct per_channel_state_tag {
 } per_channel_state_t;
 
 struct lsx_rate_state_tag {
+    int nchannels;
+    sox_rate_t factor;
     quality_t quality;
     int phase;
     double bandwidth;
     sox_bool allow_aliasing;
-    int nchannels;
-    sox_rate_t factor;
+    sox_bool use_threads;
     rate_shared_t shared;
     per_channel_state_t pcs[1];
 };
@@ -80,13 +81,14 @@ lsx_rate_t *lsx_rate_create(unsigned nchannels,
     state->factor = (double)in_rate / out_rate;
     state->quality = Very;
     state->phase = 50; // linear;
+    state->use_threads = sox_true;
     return state;
 }
 
 int lsx_rate_close(lsx_rate_t *state)
 {
     int n;
-    if (stop_workers(state) < 0)
+    if (state->use_threads && stop_workers(state) < 0)
 	return -1;
     for (n = 0; n < state->nchannels; ++n)
 	rate_close(&state->pcs[n].rate);
@@ -118,8 +120,11 @@ int lsx_rate_config(lsx_rate_t *state, enum lsx_rate_config_e type, ...)
 	    err = -1;
 	else
 	    state->bandwidth = val;
-    } else if (type == SOX_RATE_ALLOW_ALIASING)
-	state->allow_aliasing = !!va_arg(ap, int);
+    }
+    else if (type == SOX_RATE_ALLOW_ALIASING)
+	state->allow_aliasing = va_arg(ap, int);
+    else if (type == SOX_RATE_USE_THREADS)
+	state->use_threads = va_arg(ap, int);
     else
 	err = -1;
     va_end(ap);
@@ -129,12 +134,14 @@ int lsx_rate_config(lsx_rate_t *state, enum lsx_rate_config_e type, ...)
 int lsx_rate_start(lsx_rate_t *state)
 {
     int i, n;
+    if (state->nchannels == 1)
+	state->use_threads = sox_false;
     __try {
 	for (i = 0; i < state->nchannels; ++i)
 	    rate_init(&state->pcs[i].rate, &state->shared, state->factor,
 		      state->quality, -1, state->phase, state->bandwidth,
 		      state->allow_aliasing);
-	if (start_workers(state) < 0) {
+	if (state->use_threads && start_workers(state) < 0) {
 	    stop_workers(state);
 	    for (n = 0; n < state->nchannels; ++n)
 		rate_close(&state->pcs[n].rate);
@@ -161,11 +168,17 @@ int lsx_rate_process(lsx_rate_t *state, const float *ibuf, float *obuf,
 	    state->pcs[n].olen = min(*olen, RATE_BUFSIZE);
 	    if (!count) rate_flush(&state->pcs[n].rate);
 	}
-	if (fire_and_wait_workers(state, sox_false) < 0)
-	    return -1;
-	for (n = 0; n < state->nchannels; ++n)
-	    if (state->pcs[n].th.error)
+	if (state->use_threads) {
+	    if (fire_and_wait_workers(state, sox_false) < 0)
 		return -1;
+	    for (n = 0; n < state->nchannels; ++n)
+		if (state->pcs[n].th.error)
+		    return -1;
+	} else {
+	    for (n = 0; n < state->nchannels; ++n)
+		if (flow_channel(&state->pcs[n]) < 0)
+		    return -1;
+	}
 	for (i = 0; i < state->pcs[0].olen; ++i)
 	    for (n = 0; n < state->nchannels; ++n)
 		obuf[j++] = state->pcs[n].obuf[i];

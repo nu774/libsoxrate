@@ -32,12 +32,14 @@ typedef struct lsx_rate_state_tag lsx_rate_t;
  * phase response: linear
  * band width: 0 (which means default)
  * allow aliasing: deny
+ * threads: on
  */
 enum lsx_rate_config_e {
     SOX_RATE_QUALITY,        /* 0:mid, 1:high:, 2:very high */
     SOX_RATE_PHASE_RESPONSE, /* 0:minimum, 1:intermediate, 2:linear */
     SOX_RATE_BANDWIDTH,      /* double. 80-99.7 */
     SOX_RATE_ALLOW_ALIASING, /* 0:deny, 1:allow */
+    SOX_RATE_USE_THREADS,    /* 0:off 1:on */
 };
 
 const char *lsx_rate_version_string(void);

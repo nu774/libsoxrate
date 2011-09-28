@@ -13,6 +13,7 @@ typedef struct option_t {
     int phase;
     double band;
     int alias;
+    int threads;
 } option_t;
 
 typedef struct file_t {
@@ -66,6 +67,7 @@ void usage(void)
 "-p <n>         phase response, 0:minimum, 1:intermediate, 2:linear\n"
 "-b <n>         bandwidth, 80 - 99.7\n"
 "-a             allow aliasing\n"
+"-t             use threading\n"
 "-o <filename>  output filename\n"
     );
     exit(1);
@@ -74,8 +76,8 @@ void usage(void)
 void parse_option(option_t *opts, int *argc, wchar_t ***argv)
 {
     int c;
-    option_t tmp = { 0, 0, -1, -1, 0, 0 };
-    while ((c = getopt(*argc, *argv, L"o:r:q:p:b:a")) != EOF) {
+    option_t tmp = { 0, 0, -1, -1, 0, 0, 0 };
+    while ((c = getopt(*argc, *argv, L"o:r:q:p:b:at")) != EOF) {
 	if (c == 'o')
 	    tmp.ofilename = optarg;
 	else if (c == 'r') {
@@ -92,6 +94,8 @@ void parse_option(option_t *opts, int *argc, wchar_t ***argv)
 		usage();
 	} else if (c == 'a')
 	    tmp.alias = 1;
+	else if (c == 't')
+	    tmp.threads = 1;
     }
     *argc += optind;
     *argv += optind;
@@ -140,20 +144,31 @@ void config_rate_converter(lsx_rate_t *conv, const option_t *opts)
 	if (lsx_rate_config(conv, SOX_RATE_PHASE_RESPONSE, opts->band) < 0)
 	    fputs("WARNING: lsx_rate_config(): band\n", stderr);
     }
-    if (opts->alias) {
-	if (lsx_rate_config(conv, SOX_RATE_ALLOW_ALIASING, opts->alias) < 0)
-	    fputs("WARNING: lsx_rate_config(): alias\n", stderr);
-    }
+    if (lsx_rate_config(conv, SOX_RATE_ALLOW_ALIASING, opts->alias) < 0)
+	fputs("WARNING: lsx_rate_config(): alias\n", stderr);
+    if (lsx_rate_config(conv, SOX_RATE_USE_THREADS, opts->threads) < 0)
+	fputs("WARNING: lsx_rate_config(): thread\n", stderr);
 }
 
 void process_file(const file_t *file, const option_t *opts)
 {
-#define BS 8192
-    float ibuf[BS], obuf[BS], *ip = ibuf;
+#define BS 0x4000
+    float *ibuf = 0, *obuf = 0, *ip;
     sf_count_t count = 0, total = 0;
     size_t nch = file->iinfo.channels;
     int eof = 0;
     lsx_rate_t *conv = 0;
+    DWORD start, last, now;
+
+    if (!(ibuf = malloc(sizeof(float) * BS * file->iinfo.channels))) {
+	fputs("ERROR: malloc()\n", stderr);
+	goto done;
+    }
+    if (!(obuf = malloc(sizeof(float) * BS * file->iinfo.channels))) {
+	fputs("ERROR: malloc()\n", stderr);
+	goto done;
+    }
+    ip = ibuf;
     
     if (!(conv = lsx_rate_create(nch, file->iinfo.samplerate, opts->rate))) {
 	fputs("ERROR: lsx_rate_create()\n", stderr);
@@ -164,19 +179,28 @@ void process_file(const file_t *file, const option_t *opts)
 	fputs("ERROR: lsx_rate_start()\n", stderr);
 	goto done;
     }
+    start = last = GetTickCount();
     for (;;) {
 	size_t ilen, olen;
+
 	if (!eof && !count) {
-	    count = sndfile.readf_float(file->ifile, ibuf, BS/nch);
+	    count = sndfile.readf_float(file->ifile, ibuf, BS);
 	    total += count;
 	    ip = ibuf;
 	    if (!count) eof = 1;
-	    fprintf(stderr, "\r%I64d/%I64d processd",
-		total, file->iinfo.frames);
-	    fflush(stderr);
+	    now = GetTickCount();
+	    if (now - last > 100 || eof) {
+		double ellapsed = (double)(now - start) / 1000.0;
+		double percent = 100.0 * total / file->iinfo.frames;
+		double seconds = (double)total / file->iinfo.samplerate;
+		last = now;
+		fprintf(stderr, "\r%.1f%% (%.1fx) ",
+		    percent, seconds / ellapsed);
+		fflush(stderr);
+	    }
 	}
 	ilen = count;
-	olen = BS/nch;
+	olen = BS;
 	if (lsx_rate_process(conv, ip, obuf, &ilen, &olen) < 0) {
 	    fputs("\nERROR: lsx_rate_process()\n", stderr);
 	    break;
@@ -191,6 +215,8 @@ void process_file(const file_t *file, const option_t *opts)
     }
 done:
     if (conv) lsx_rate_close(conv);
+    if (ibuf) free(ibuf);
+    if (obuf) free(obuf);
 #undef BS
 }
 
