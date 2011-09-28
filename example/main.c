@@ -185,7 +185,7 @@ void process_file(const file_t *file, const option_t *opts)
 	    fputs("...done\n", stderr);
 	    break;
 	}
-	ip += ilen;
+	ip += ilen * nch;
 	count -= ilen;
 	sndfile.writef_float(file->ofile, obuf, olen);
     }

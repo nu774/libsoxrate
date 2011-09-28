@@ -91,7 +91,7 @@ typedef struct stage {
   fft_cache_t *cache;
 } stage_t;
 
-#define stage_occupancy(s) max(0, fifo_occupancy(&(s)->fifo) - (s)->pre_post)
+#define stage_occupancy(s) max(0, (int)fifo_occupancy(&(s)->fifo) - (s)->pre_post)
 #define stage_read_p(s) ((sample_t *)fifo_read_ptr(&(s)->fifo) + (s)->pre)
 
 static void cubic_spline(stage_t * p, fifo_t * output_fifo)
