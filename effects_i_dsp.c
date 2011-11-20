@@ -56,15 +56,6 @@ static double lsx_kaiser_beta(double att)
   return 0;
 }
 
-static void lsx_apply_kaiser(double h[], const int num_points, double beta)
-{
-  int i, m = num_points - 1;
-  for (i = 0; i <= m; ++i) {
-    double x = 2. * i / m - 1;
-    h[i] *= lsx_bessel_I_0(beta * sqrt(1 - x * x)) / lsx_bessel_I_0(beta);
-  }
-}
-
 static double * lsx_make_lpf(int num_taps, double Fc, double beta, double scale, sox_bool dc_norm)
 {
   int i, m = num_taps - 1;
