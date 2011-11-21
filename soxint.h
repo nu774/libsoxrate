@@ -20,6 +20,7 @@
 #define SOXINT_H
 
 #include <sys/types.h>
+#include <stddef.h>
 
 #define LSX_TO_6dB .5869
 #define LSX_TO_3dB ((2/3.) * (.5 + LSX_TO_6dB))
@@ -58,14 +59,6 @@ void lsx_clear_fft_cache(fft_cache_t *cp);
 void lsx_safe_rdft(int len, int type, double * d, fft_cache_t *cp);
 void lsx_safe_cdft(int len, int type, double * d, fft_cache_t *cp);
 int lsx_set_dft_length(int num_taps);
-double * lsx_design_lpf(
-    double Fp,      /* End of pass-band; ~= 0.01dB point */
-    double Fc,      /* Start of stop-band */
-    double Fn,      /* Nyquist freq; e.g. 0.5, 1, PI */
-    sox_bool allow_aliasing,
-    double att,     /* Stop-band attenuation in dB */
-    int * num_taps, /* (Single phase.)  0: value will be estimated */
-    int k);         /* Number of phases; 0 for single-phase */
 void lsx_fir_to_phase(double * * h, int * len, int * post_len, double phase0, fft_cache_t *cache);
 
 void *lsx_malloc(size_t size);

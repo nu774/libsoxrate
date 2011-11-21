@@ -6,3 +6,11 @@ EXPORTS
     lsx_rate_config
     lsx_rate_start
     lsx_rate_process
+    lsx_rate_process_noninterleaved
+    lsx_fir_create
+    lsx_fir_close
+    lsx_fir_start
+    lsx_fir_process
+    lsx_fir_process_noninterleaved
+    lsx_design_lpf
+    lsx_free

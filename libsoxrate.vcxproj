@@ -77,6 +77,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="alloc.c" />
+    <ClCompile Include="dft_filter.c" />
     <ClCompile Include="effects_i_dsp.c" />
     <ClCompile Include="fft4g.c" />
     <ClCompile Include="lsxfft.c" />
@@ -84,6 +85,7 @@
     <ClCompile Include="threaded_module.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="dft_module.h" />
     <ClInclude Include="fft4g.h" />
     <ClInclude Include="fifo.h" />
     <ClInclude Include="libsoxrate.h" />

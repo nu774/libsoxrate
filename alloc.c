@@ -42,3 +42,8 @@ void *lsx_realloc(void *ptr, size_t size)
     if (!p) DIE;
     return p;
 }
+
+void lsx_free(void *ptr)
+{
+    free(ptr);
+}

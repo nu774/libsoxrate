@@ -31,3 +31,9 @@ int lsx_term_threads(lsx_thread_state_t *state);
 int lsx_process_threaded_interleaved(lsx_thread_state_t *state,
 				     const float *ibuf, float *obuf,
 				     size_t *ilen, size_t *olen);
+int lsx_process_threaded_noninterleaved(lsx_thread_state_t *state,
+					const float * const *ibuf,
+					float **obuf,
+					size_t *ilen, size_t *olen,
+					size_t istride, size_t ostride);
+

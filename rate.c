@@ -23,6 +23,7 @@
 #include <math.h>
 #include <assert.h>
 #include <stdint.h>
+#include "libsoxrate.h"
 #include "soxint.h"
 #include "fft4g.h"
 #include "fifo.h"

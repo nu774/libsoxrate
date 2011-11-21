@@ -33,6 +33,9 @@
     <ClCompile Include="threaded_module.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="dft_filter.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="fft4g.h">
@@ -63,6 +66,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="threaded_module.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dft_module.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

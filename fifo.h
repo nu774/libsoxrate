@@ -61,7 +61,7 @@ static void * fifo_reserve(fifo_t * f, FIFO_SIZE_T n)
       continue;
     }
     f->allocation += n;
-    f->data = lsx_realloc(f->data, f->allocation);
+    f->data = (char*)lsx_realloc(f->data, f->allocation);
   }
 }
 
@@ -113,7 +113,7 @@ static void fifo_create(fifo_t * f, FIFO_SIZE_T item_size)
 {
   f->item_size = item_size;
   f->allocation = FIFO_MIN;
-  f->data = lsx_malloc(f->allocation);
+  f->data = (char *)lsx_malloc(f->allocation);
   fifo_clear(f);
 }
 
