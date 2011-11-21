@@ -81,17 +81,19 @@
     <ClCompile Include="fft4g.c" />
     <ClCompile Include="lsxfft.c" />
     <ClCompile Include="rate.c" />
+    <ClCompile Include="threaded_module.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="fft4g.h" />
     <ClInclude Include="fifo.h" />
-    <ClInclude Include="module.h" />
+    <ClInclude Include="libsoxrate.h" />
     <ClInclude Include="rate_filters.h" />
     <ClInclude Include="rate_half_fir.h" />
+    <ClInclude Include="rate_module.h" />
     <ClInclude Include="rate_poly_fir.h" />
     <ClInclude Include="rate_poly_fir0.h" />
     <ClInclude Include="soxint.h" />
-    <ClInclude Include="libsoxrate.h" />
+    <ClInclude Include="threaded_module.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="libsoxrate.def" />

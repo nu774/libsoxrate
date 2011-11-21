@@ -415,4 +415,4 @@ static void rate_close(rate_t * p)
   lsx_clear_fft_cache(&p->cache);
 }
 
-#include "module.h"
+#include "rate_module.h"

@@ -30,6 +30,9 @@
     <ClCompile Include="alloc.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="threaded_module.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="fft4g.h">
@@ -41,13 +44,13 @@
     <ClInclude Include="libsoxrate.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="module.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="rate_filters.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="rate_half_fir.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rate_module.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="rate_poly_fir.h">
@@ -57,6 +60,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="soxint.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="threaded_module.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
