@@ -127,7 +127,7 @@ void process_file(const file_t *file)
     lsx_fir_t *conv = 0;
     DWORD start, last, now;
     double *ht = 0;
-    size_t numtaps = file->iinfo.samplerate / 80.0;
+    size_t numtaps = file->iinfo.samplerate / 12.0;
     double gain;
     if (!(numtaps & 1)) ++numtaps;
 
