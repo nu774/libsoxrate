@@ -173,6 +173,7 @@
     <ClInclude Include="rate_poly_fir0.h" />
     <ClInclude Include="soxint.h" />
     <ClInclude Include="threaded_module.h" />
+    <ClInclude Include="version.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="libsoxrate.def" />

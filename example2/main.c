@@ -163,7 +163,7 @@ void process_file(const file_t *file)
 
 	if (!eof && !count) {
 	    count = sndfile.readf_float(file->ifile, ibuf, BS);
-	    for (i = 0; i < count; ++i)
+	    for (i = 0; i < count * nch; ++i)
 		ibuf[i] /= gain;
 	    total += count;
 	    ip = ibuf;

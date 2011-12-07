@@ -110,33 +110,15 @@ int lsx_process_threaded_interleaved(lsx_thread_state_t *state,
 				     size_t *ilen, size_t *olen)
 {
     int n;
-    size_t i, j = 0;
-
-    __try {
-	size_t count = ilen ? min(*ilen, IO_BUFSIZE) : 0;
-	for (n = 0; n < state->count; ++n) {
-	    state->pth[n].ilen = count;
-	    state->pth[n].olen = min(*olen, IO_BUFSIZE);
-	}
-	j = 0;
-	for (i = 0; i < count; ++i)
-	    for (n = 0; n < state->count; ++n)
-		state->pth[n].ibuf[i] = ibuf[j++];
-
-	if (run_filter(state) < 0)
-	    return -1;
-
-	j = 0;
-	for (i = 0; i < state->pth[0].olen; ++i)
-	    for (n = 0; n < state->count; ++n)
-		obuf[j++] = state->pth[n].obuf[i];
-	if (ilen && *ilen)
-	    *ilen = state->pth[0].ilen;
-	*olen = state->pth[0].olen;
-	return 0;
-    } __except (HANDLE_NO_MEMORY) {
-	return -1;
+    float **ivec = _alloca(sizeof(float*) * state->count);
+    float **ovec = _alloca(sizeof(float*) * state->count);
+    for (n = 0; n < state->count; ++n) {
+	ivec[n] = ibuf + n;
+	ovec[n] = obuf + n;
     }
+    return lsx_process_threaded_noninterleaved(state, ivec, ovec,
+					       ilen, olen,
+					       state->count, state->count);
 }
 
 int lsx_process_threaded_noninterleaved(lsx_thread_state_t *state,
