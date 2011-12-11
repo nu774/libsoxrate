@@ -19,7 +19,7 @@
 #include "fifo.h"
 
 typedef struct {
-  size_t     samples_in, samples_out;
+  uint64_t   samples_in, samples_out;
   fifo_t     input_fifo, output_fifo;
   dft_filter_t   filter, * filter_ptr;
   fft_cache_t  fft_cache;
@@ -108,8 +108,8 @@ static int flow(dft_filter_priv_t * p, const double * ibuf,
 static int drain(dft_filter_priv_t * p, double * obuf, size_t * osamp)
 {
   static size_t isamp = 0;
-  size_t samples_out = p->samples_in;
-  size_t remaining = samples_out - p->samples_out;
+  uint64_t samples_out = p->samples_in;
+  int64_t remaining = samples_out - p->samples_out;
   double * buff = (double *)lsx_calloc(1024, sizeof(*buff));
 
   if ((int)remaining > 0) {

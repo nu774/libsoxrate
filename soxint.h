@@ -21,6 +21,7 @@
 
 #include <sys/types.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #define LSX_TO_6dB .5869
 #define LSX_TO_3dB ((2/3.) * (.5 + LSX_TO_6dB))
