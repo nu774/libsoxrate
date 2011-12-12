@@ -7,6 +7,19 @@ static unsigned __stdcall worker_thread(void *arg);
 #define HANDLE_NO_MEMORY \
     GetExceptionCode() == STATUS_NO_MEMORY
 
+#ifdef _MSC_VER
+#define inline __inline
+#endif
+
+inline float quantize(double v)
+{
+    const float anti_denormal = 1.0e-30f;
+    float x = v;
+    x += anti_denormal;
+    x -= anti_denormal;
+    return x;
+}
+
 static int start_workers(lsx_thread_state_t *state,
 			 unsigned (__stdcall *func)(void *))
 {
@@ -145,7 +158,7 @@ int lsx_process_threaded_noninterleaved(lsx_thread_state_t *state,
 
 	for (i = 0; i < state->pth[0].olen; ++i)
 	    for (n = 0; n < state->count; ++n)
-		obuf[n][i * ostride] = state->pth[n].obuf[i];
+		obuf[n][i * ostride] = quantize(state->pth[n].obuf[i]);
 	if (ilen && *ilen)
 	    *ilen = state->pth[0].ilen;
 	*olen = state->pth[0].olen;
