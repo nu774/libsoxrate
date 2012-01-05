@@ -1,14 +1,75 @@
+#if defined(_MSC_VER) || defined(__MINGW32__)
 #include <process.h>
+#endif
+#include <stdlib.h>
 #include <memory.h>
 #include "threaded_module.h"
 
+#if defined(_MSC_VER) || defined(__MINGW32__)
 static unsigned __stdcall worker_thread(void *arg);
+#else
+static void * worker_thread(void *arg);
+#endif
 
 #ifdef _MSC_VER
 #define inline __inline
+#define alloca _alloca
 #endif
 
-inline float quantize(double v)
+#ifdef _WIN32
+inline void thread_join(pthread_t th)
+{
+    WaitForSingleObject(th, INFINITE);
+    CloseHandle(th);
+}
+
+inline event_t event_new() { return CreateEventW(0, 0, 0, 0); }
+inline void event_fire(event_t ev) { SetEvent(ev); }
+inline int event_wait(event_t ev)
+{
+    return WaitForSingleObject(ev, INFINITE) == WAIT_OBJECT_0;
+}
+inline void event_close(event_t ev) { CloseHandle(ev); }
+#else
+static inline void thread_join(pthread_t th) { pthread_join(th, 0); }
+
+static event_t event_new()
+{
+    event_t ev = lsx_malloc(sizeof(struct event_tag));
+    if (!ev) return 0;
+    pthread_mutex_init(&ev->mutex, 0);
+    pthread_cond_init(&ev->cond, 0);
+    ev->triggered = sox_false;
+    return ev;
+}
+
+static void event_fire(event_t ev)
+{
+    pthread_mutex_lock(&ev->mutex);
+    ev->triggered = sox_true;
+    pthread_cond_signal(&ev->cond);
+    pthread_mutex_unlock(&ev->mutex);
+}
+
+static int event_wait(event_t ev)
+{
+     pthread_mutex_lock(&ev->mutex);
+     while (!ev->triggered)
+         pthread_cond_wait(&ev->cond, &ev->mutex);
+     ev->triggered = sox_false;
+     pthread_mutex_unlock(&ev->mutex);
+     return 1;
+}
+
+static void event_close(event_t ev)
+{
+    pthread_mutex_destroy(&ev->mutex);
+    pthread_cond_destroy(&ev->cond);
+    lsx_free(ev);
+}
+#endif
+
+static inline float quantize(double v)
 {
     const float anti_denormal = 1.0e-30f;
     float x = v;
@@ -17,17 +78,26 @@ inline float quantize(double v)
     return x;
 }
 
-static int start_workers(lsx_thread_state_t *state,
-			 unsigned (__stdcall *func)(void *))
+#ifdef _WIN32
+typedef unsigned (__stdcall *thread_proc)(void *);
+#else
+typedef void * (*thread_proc)(void *);
+#endif
+
+static int start_workers(lsx_thread_state_t *state, thread_proc func)
 {
     int i;
     for (i = 0; i < state->count; ++i) {
 	per_thread_state_t *ts = &state->pth[i];
-	if (!(ts->evpro = CreateEventW(0, 0, 0, 0)))
+	if (!(ts->evpro = event_new()))
 	    return -1;
-	if (!(ts->evcon = CreateEventW(0, 0, 0, 0)))
+	if (!(ts->evcon = event_new()))
 	    return -1;
+#ifdef _WIN32
 	if (!(ts->ht = (HANDLE)_beginthreadex(0, 0, func, ts, 0, &ts->tid)))
+#else
+	if (pthread_create(&ts->ht, 0, func, ts))
+#endif
 	    return -1;
     }
     return 0;
@@ -36,18 +106,20 @@ static int start_workers(lsx_thread_state_t *state,
 static int fire_and_wait_workers(lsx_thread_state_t *state, sox_bool join)
 {
     int i, n = 0;
-    HANDLE *events;
 
-    if ((events = _alloca(sizeof(HANDLE) * state->count)) == 0)
-	return -1;
+    for (i = 0; i < state->count; ++i) {
+	per_thread_state_t *ts = &state->pth[i];
+	if (ts->ht) event_fire(ts->evpro);
+    }
     for (i = 0; i < state->count; ++i) {
 	per_thread_state_t *ts = &state->pth[i];
 	if (ts->ht) {
-	    SetEvent(ts->evpro);
-	    events[n++] = join ? ts->ht : ts->evcon;
+	    if (join)
+		thread_join(ts->ht);
+	    else
+		event_wait(ts->evcon);
 	}
     }
-    if (n) WaitForMultipleObjects(n, events, TRUE, INFINITE);
     return 0;
 }
 
@@ -60,9 +132,8 @@ static int stop_workers(lsx_thread_state_t *state)
 	return -1;
     for (n = 0; n < state->count; ++n) {
 	per_thread_state_t *ts = &state->pth[n];
-	if (ts->ht) CloseHandle(ts->ht);
-	if (ts->evpro) CloseHandle(ts->evpro);
-	if (ts->evcon) CloseHandle(ts->evcon);
+	if (ts->evpro) event_close(ts->evpro);
+	if (ts->evcon) event_close(ts->evcon);
 	memset(ts, 0, sizeof(per_thread_state_t));
     }
     return 0;
@@ -92,7 +163,7 @@ int lsx_term_threads(lsx_thread_state_t *state)
 {
     if (state->use_threads && stop_workers(state) < 0)
 	return -1;
-    free(state->pth);
+    lsx_free(state->pth);
     memset(state, 0, sizeof(lsx_thread_state_t));
     return 0;
 }
@@ -120,8 +191,8 @@ int lsx_process_threaded_interleaved(lsx_thread_state_t *state,
 				     size_t *ilen, size_t *olen)
 {
     int n;
-    float **ivec = _alloca(sizeof(float*) * state->count);
-    float **ovec = _alloca(sizeof(float*) * state->count);
+    float **ivec = alloca(sizeof(float*) * state->count);
+    float **ovec = alloca(sizeof(float*) * state->count);
     for (n = 0; n < state->count; ++n) {
 	ivec[n] = ibuf + n;
 	ovec[n] = obuf + n;
@@ -161,16 +232,18 @@ int lsx_process_threaded_noninterleaved(lsx_thread_state_t *state,
     return 0;
 }
 
+#ifdef _WIN32
 static unsigned __stdcall worker_thread(void *arg)
+#else
+static void * worker_thread(void *arg)
+#endif
 {
     per_thread_state_t *pth = arg;
-    while (WaitForSingleObject(pth->evpro, INFINITE) == WAIT_OBJECT_0) {
-	if (pth->done)
-	    break;
+    while (event_wait(pth->evpro) && !pth->done) {
 	if (pth->flow(pth) < 0)
 	    pth->error = sox_true;
-	SetEvent(pth->evcon);
+	event_fire(pth->evcon);
     }
-    SetEvent(pth->evcon);
+    event_fire(pth->evcon);
     return 0;
 }

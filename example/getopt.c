@@ -58,7 +58,7 @@
 
 #if 0
 #if defined(LIBC_SCCS) && !defined(lint)
-static wchar_t *rcsid = "$OpenBSD: getopt_long.c,v 1.16 2004/02/04 18:17:25 millert Exp $";
+static char *rcsid = "$OpenBSD: getopt_long.c,v 1.16 2004/02/04 18:17:25 millert Exp $";
 #endif /* LIBC_SCCS and not lint */
 #endif
 
@@ -79,7 +79,7 @@ int opterr = 1;     /* if error message should be printed */
 int optind = 1;     /* index into parent argv vector */
 int optopt = '?';	/* character checked for validity */
 int optreset;	    /* reset getopt */
-wchar_t	*optarg;	/* argument associated with option */
+char	*optarg;	/* argument associated with option */
 
 #define PRINT_ERROR ((opterr) && (*options != ':'))
 
@@ -92,7 +92,7 @@ wchar_t	*optarg;	/* argument associated with option */
 #define BADARG	    ((*options == ':') ? (int)':' : (int)'?')
 #define INORDER     (int)1
 
-#define EMSG	    L""
+#define EMSG	    ""
 
 #ifdef GNU_COMPATIBLE
 #define NO_PREFIX   (-1)
@@ -101,35 +101,35 @@ wchar_t	*optarg;	/* argument associated with option */
 #define W_PREFIX    2
 #endif
 
-static int getopt_internal(int, wchar_t * const *, const wchar_t *,
+static int getopt_internal(int, char * const *, const char *,
 	       const struct option *, int *, int);
-static int parse_long_options(wchar_t * const *, const wchar_t *,
+static int parse_long_options(char * const *, const char *,
 		  const struct option *, int *, int, int);
 static int gcd(int, int);
-static void permute_args(int, int, int, wchar_t * const *);
+static void permute_args(int, int, int, char * const *);
 
-static wchar_t *place = EMSG; /* option letter processing */
+static char *place = EMSG; /* option letter processing */
 
 /* XXX: set optreset to 1 rather than these two */
 static int nonopt_start = -1; /* first non option argument (for permute) */
 static int nonopt_end = -1;   /* first option after non options (for permute) */
 
 /* Error messages */
-static const char recargchar[] = "option requires an argument -- %lc";
-static const char illoptchar[] = "illegal option -- %lc"; /* From P1003.2 */
+static const char recargchar[] = "option requires an argument -- %c";
+static const char illoptchar[] = "illegal option -- %c"; /* From P1003.2 */
 #ifdef GNU_COMPATIBLE
 static int dash_prefix = NO_PREFIX;
-static const char gnuoptchar[] = "invalid option -- %lc";
+static const char gnuoptchar[] = "invalid option -- %c";
 
-static const char recargstring[] = "option `%ls%ls' requires an argument";
-static const char ambig[] = "option `%ls%.*ls' is ambiguous";
-static const char noarg[] = "option `%ls%.*ls' doesn't allow an argument";
-static const char illoptstring[] = "unrecognized option `%ls%ls'";
+static const char recargstring[] = "option `%s%s' requires an argument";
+static const char ambig[] = "option `%s%.*s' is ambiguous";
+static const char noarg[] = "option `%s%.*s' doesn't allow an argument";
+static const char illoptstring[] = "unrecognized option `%s%s'";
 #else
-static const char recargstring[] = "option requires an argument -- %ls";
-static const char ambig[] = "ambiguous option -- %.*ls";
-static const char noarg[] = "option doesn't take an argument -- %.*ls";
-static const char illoptstring[] = "unknown option -- %ls";
+static const char recargstring[] = "option requires an argument -- %s";
+static const char ambig[] = "ambiguous option -- %.*s";
+static const char noarg[] = "option doesn't take an argument -- %.*s";
+static const char illoptstring[] = "unknown option -- %s";
 #endif
 
 static void
@@ -167,10 +167,10 @@ gcd(int a, int b)
  */
 static void
 permute_args(int panonopt_start, int panonopt_end, int opt_end,
-    wchar_t * const *nargv)
+    char * const *nargv)
 {
     int cstart, cyclelen, i, j, ncycle, nnonopts, nopts, pos;
-    wchar_t *swap;
+    char *swap;
 
     /*
      * compute lengths of blocks and number and size of cycles
@@ -190,9 +190,9 @@ permute_args(int panonopt_start, int panonopt_end, int opt_end,
 		pos += nopts;
 	    swap = nargv[pos];
 	    /* LINTED const cast */
-	    ((wchar_t **) nargv)[pos] = nargv[cstart];
+	    ((char **) nargv)[pos] = nargv[cstart];
 	    /* LINTED const cast */
-	    ((wchar_t **)nargv)[cstart] = swap;
+	    ((char **)nargv)[cstart] = swap;
 	}
     }
 }
@@ -203,12 +203,12 @@ permute_args(int panonopt_start, int panonopt_end, int opt_end,
  * Returns -1 if short_too is set and the option does not match long_options.
  */
 static int
-parse_long_options(wchar_t * const *nargv, const wchar_t *options,
+parse_long_options(char * const *nargv, const char *options,
     const struct option *long_options, int *idx, int short_too, int flags)
 {
-    wchar_t *current_argv, *has_equal;
+    char *current_argv, *has_equal;
 #ifdef GNU_COMPATIBLE
-    wchar_t *current_dash;
+    char *current_dash;
 #endif
     size_t current_argv_len;
     int i, match, exact_match, second_partial_match;
@@ -217,16 +217,16 @@ parse_long_options(wchar_t * const *nargv, const wchar_t *options,
 #ifdef GNU_COMPATIBLE
     switch (dash_prefix) {
 	case D_PREFIX:
-	    current_dash = L"-";
+	    current_dash = "-";
 	    break;
 	case DD_PREFIX:
-	    current_dash = L"--";
+	    current_dash = "--";
 	    break;
 	case W_PREFIX:
-	    current_dash = L"-W ";
+	    current_dash = "-W ";
 	    break;
 	default:
-	    current_dash = L"";
+	    current_dash = "";
 	    break;
     }
 #endif
@@ -236,20 +236,20 @@ parse_long_options(wchar_t * const *nargv, const wchar_t *options,
 
     optind++;
 
-    if ((has_equal = wcschr(current_argv, '=')) != NULL) {
+    if ((has_equal = strchr(current_argv, '=')) != NULL) {
 	/* argument found (--option=arg) */
 	current_argv_len = has_equal - current_argv;
 	has_equal++;
     } else
-	current_argv_len = wcslen(current_argv);
+	current_argv_len = strlen(current_argv);
 
     for (i = 0; long_options[i].name; i++) {
 	/* find matching long option */
-	if (wcsncmp(current_argv, long_options[i].name,
+	if (strncmp(current_argv, long_options[i].name,
 	    current_argv_len))
 	    continue;
 
-	if (wcslen(long_options[i].name) == current_argv_len) {
+	if (strlen(long_options[i].name) == current_argv_len) {
 	    /* exact match */
 	    match = i;
 	    exact_match = 1;
@@ -368,10 +368,10 @@ parse_long_options(wchar_t * const *nargv, const wchar_t *options,
  *  Parse argc/argv argument vector.  Called by user level routines.
  */
 static int
-getopt_internal(int nargc, wchar_t * const *nargv, const wchar_t *options,
+getopt_internal(int nargc, char * const *nargv, const char *options,
     const struct option *long_options, int *idx, int flags)
 {
-    wchar_t *oli;		    /* option letter list index */
+    char *oli;		    /* option letter list index */
     int optchar, short_too;
     int posixly_correct;    /* no static, can be changed on the fly */
 
@@ -432,7 +432,7 @@ start:
 #ifdef GNU_COMPATIBLE
 	    place[1] == '\0') {
 #else
-	    (place[1] == '\0' && wcschr(options, '-') == NULL)) {
+	    (place[1] == '\0' && strchr(options, '-') == NULL)) {
 #endif
 	    place = EMSG;	/* found non-option */
 	    if (flags & FLAG_ALLARGS) {
@@ -504,7 +504,7 @@ start:
 #ifdef GNU_COMPATIBLE
 	    dash_prefix = DD_PREFIX;
 #endif
-	} else if (*place != ':' && wcschr(options, *place) != NULL)
+	} else if (*place != ':' && strchr(options, *place) != NULL)
 	    short_too = 1;	/* could be short option too */
 
 	optchar = parse_long_options(nargv, options, long_options,
@@ -517,7 +517,7 @@ start:
 
     if ((optchar = (int)*place++) == (int)':' ||
 	(optchar == (int)'-' && *place != '\0') ||
-	(oli = wcschr(options, optchar)) == NULL) {
+	(oli = strchr(options, optchar)) == NULL) {
 	/*
 	 * If the user specified "-" and  '-' isn't listed in
 	 * options, return -1 (non-option) as per POSIX.
@@ -589,7 +589,7 @@ start:
  * [eventually this will replace the BSD getopt]
  */
 int
-getopt(int nargc, wchar_t * const *nargv, const wchar_t *options)
+getopt(int nargc, char * const *nargv, const char *options)
 {
 
     /*
@@ -608,7 +608,7 @@ getopt(int nargc, wchar_t * const *nargv, const wchar_t *options)
  *  Parse argc/argv argument vector.
  */
 int
-getopt_long(int nargc, wchar_t * const *nargv, const wchar_t *options,
+getopt_long(int nargc, char * const *nargv, const char *options,
     const struct option *long_options, int *idx)
 {
 
@@ -621,7 +621,7 @@ getopt_long(int nargc, wchar_t * const *nargv, const wchar_t *options,
  *  Parse argc/argv argument vector.
  */
 int
-getopt_long_only(int nargc, wchar_t * const *nargv, const wchar_t *options,
+getopt_long_only(int nargc, char * const *nargv, const char *options,
     const struct option *long_options, int *idx)
 {
 

@@ -1,14 +1,30 @@
+#ifdef _WIN32
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
 #include <windows.h>
+#else
+#include <pthread.h>
+#endif
 #include "soxint.h"
 
 enum { IO_BUFSIZE = 4096 };
 
+#ifdef _WIN32
+typedef HANDLE event_t;
+typedef HANDLE pthread_t;
+#else
+struct event_tag {
+    pthread_mutex_t mutex;
+    pthread_cond_t cond;
+    sox_bool triggered;
+};
+typedef struct event_tag *event_t;
+#endif
+
 typedef struct per_thread_state_tag {
-    HANDLE ht;
-    HANDLE evpro, evcon;
+    pthread_t ht;
+    event_t evpro, evcon;
     unsigned tid;
     sox_bool done;
     sox_bool error;

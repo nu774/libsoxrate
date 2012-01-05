@@ -18,21 +18,6 @@
  */
 #include <stdlib.h>
 
-void *lsx_malloc(size_t size)
-{
-    return malloc(size);
-}
-
-void *lsx_calloc(size_t nelem, size_t size)
-{
-    return calloc(nelem, size);
-}
-
-void *lsx_realloc(void *ptr, size_t size)
-{
-    return realloc(ptr, size);
-}
-
 void lsx_free(void *ptr)
 {
     free(ptr);

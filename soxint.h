@@ -31,6 +31,13 @@
 
 #define sqr(a) ((a) * (a))
 
+#ifndef max
+#define max(a, b) ((a) < (b) ? (b) : (a))
+#endif
+#ifndef min
+#define min(a, b) ((a) > (b) ? (b) : (a))
+#endif
+
 #define range_limit(x, lower, upper) (min(max(x, lower), upper))
 
 /* Compile-time ("static") assertion */
@@ -62,8 +69,8 @@ void lsx_safe_cdft(int len, int type, double * d, fft_cache_t *cp);
 int lsx_set_dft_length(int num_taps);
 void lsx_fir_to_phase(double * * h, int * len, int * post_len, double phase0, fft_cache_t *cache);
 
-void *lsx_malloc(size_t size);
-void *lsx_calloc(size_t nelem, size_t size);
-void *lsx_realloc(void *ptr, size_t size);
+#define lsx_malloc malloc
+#define lsx_calloc calloc
+#define lsx_realloc realloc
 
 #endif
