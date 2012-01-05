@@ -17,30 +17,20 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 #include <stdlib.h>
-#include <windows.h>
-
-#define DIE \
-RaiseException(STATUS_NO_MEMORY, EXCEPTION_NONCONTINUABLE_EXCEPTION, 0, 0)
 
 void *lsx_malloc(size_t size)
 {
-    void *p = malloc(size);
-    if (!p) DIE;
-    return p;
+    return malloc(size);
 }
 
 void *lsx_calloc(size_t nelem, size_t size)
 {
-    void *p = calloc(nelem, size);
-    if (!p) DIE;
-    return p;
+    return calloc(nelem, size);
 }
 
 void *lsx_realloc(void *ptr, size_t size)
 {
-    void *p = realloc(ptr, size);
-    if (!p) DIE;
-    return p;
+    return realloc(ptr, size);
 }
 
 void lsx_free(void *ptr)

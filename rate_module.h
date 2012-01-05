@@ -34,9 +34,6 @@ struct lsx_rate_state_tag {
     rate_t rate[1];
 };
 
-#define HANDLE_NO_MEMORY \
-    GetExceptionCode() == STATUS_NO_MEMORY
-
 static int flow_channel(per_thread_state_t *pth);
 
 const char *lsx_rate_version_string(void)
@@ -113,20 +110,16 @@ int lsx_rate_start(lsx_rate_t *state)
     int i;
     if (state->nchannels == 1)
 	state->use_threads = sox_false;
-    __try {
-	for (i = 0; i < state->nchannels; ++i)
-	    rate_init(&state->rate[i], &state->shared, state->factor,
-		      state->quality, -1, state->phase, state->bandwidth,
-		      state->allow_aliasing);
-	if (lsx_init_threads(&state->thread, state->use_threads,
-			     state->nchannels, 0, flow_channel) < 0)
-	    return -1;
-	for (i = 0; i < state->nchannels; ++i)
-	    state->thread.pth[i].ctx = &state->rate[i];
-	return 0;
-    } __except (HANDLE_NO_MEMORY) {
+    for (i = 0; i < state->nchannels; ++i)
+	rate_init(&state->rate[i], &state->shared, state->factor,
+		  state->quality, -1, state->phase, state->bandwidth,
+		  state->allow_aliasing);
+    if (lsx_init_threads(&state->thread, state->use_threads,
+			 state->nchannels, 0, flow_channel) < 0)
 	return -1;
-    }
+    for (i = 0; i < state->nchannels; ++i)
+	state->thread.pth[i].ctx = &state->rate[i];
+    return 0;
 }
 
 int lsx_rate_process(lsx_rate_t *state, const float *ibuf, float *obuf,
@@ -147,21 +140,17 @@ int lsx_rate_process_noninterleaved(lsx_rate_t *state,
 
 static int flow_channel(per_thread_state_t *pth)
 {
-    __try {
-	rate_t *rate = pth->ctx;
-	size_t odone = pth->olen;
-	if (!pth->ilen)
-	    rate_flush(rate);
-	rate_output(rate, pth->obuf, &odone);
-	if (!pth->ilen || odone == pth->olen)
-	    pth->ilen = 0;
-	else {
-	    rate_input(rate, pth->ibuf, pth->ilen);
-	    rate_process(rate);
-	}
-	pth->olen = odone;
-	return 0;
-    } __except (HANDLE_NO_MEMORY) {
-	return -1;
+    rate_t *rate = pth->ctx;
+    size_t odone = pth->olen;
+    if (!pth->ilen)
+	rate_flush(rate);
+    rate_output(rate, pth->obuf, &odone);
+    if (!pth->ilen || odone == pth->olen)
+	pth->ilen = 0;
+    else {
+	rate_input(rate, pth->ibuf, pth->ilen);
+	rate_process(rate);
     }
+    pth->olen = odone;
+    return 0;
 }

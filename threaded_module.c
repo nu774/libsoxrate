@@ -4,9 +4,6 @@
 
 static unsigned __stdcall worker_thread(void *arg);
 
-#define HANDLE_NO_MEMORY \
-    GetExceptionCode() == STATUS_NO_MEMORY
-
 #ifdef _MSC_VER
 #define inline __inline
 #endif
@@ -143,29 +140,25 @@ int lsx_process_threaded_noninterleaved(lsx_thread_state_t *state,
     int n;
     size_t i;
 
-    __try {
-	size_t count = ilen ? min(*ilen, IO_BUFSIZE) : 0;
-	for (n = 0; n < state->count; ++n) {
-	    state->pth[n].ilen = count;
-	    state->pth[n].olen = min(*olen, IO_BUFSIZE);
-	}
-	for (i = 0; i < count; ++i)
-	    for (n = 0; n < state->count; ++n)
-		state->pth[n].ibuf[i] = ibuf[n][i * istride];
-
-	if (run_filter(state) < 0)
-	    return -1;
-
-	for (i = 0; i < state->pth[0].olen; ++i)
-	    for (n = 0; n < state->count; ++n)
-		obuf[n][i * ostride] = quantize(state->pth[n].obuf[i]);
-	if (ilen && *ilen)
-	    *ilen = state->pth[0].ilen;
-	*olen = state->pth[0].olen;
-	return 0;
-    } __except (HANDLE_NO_MEMORY) {
-	return -1;
+    size_t count = ilen ? min(*ilen, IO_BUFSIZE) : 0;
+    for (n = 0; n < state->count; ++n) {
+	state->pth[n].ilen = count;
+	state->pth[n].olen = min(*olen, IO_BUFSIZE);
     }
+    for (i = 0; i < count; ++i)
+	for (n = 0; n < state->count; ++n)
+	    state->pth[n].ibuf[i] = ibuf[n][i * istride];
+
+    if (run_filter(state) < 0)
+	return -1;
+
+    for (i = 0; i < state->pth[0].olen; ++i)
+	for (n = 0; n < state->count; ++n)
+	    obuf[n][i * ostride] = quantize(state->pth[n].obuf[i]);
+    if (ilen && *ilen)
+	*ilen = state->pth[0].ilen;
+    *olen = state->pth[0].olen;
+    return 0;
 }
 
 static unsigned __stdcall worker_thread(void *arg)

@@ -30,9 +30,6 @@ struct lsx_fir_state_tag {
     dft_filter_priv_t dft[1];
 };
 
-#define HANDLE_NO_MEMORY \
-    GetExceptionCode() == STATUS_NO_MEMORY
-
 static int flow_channel(per_thread_state_t *pth);
 
 lsx_fir_t *lsx_fir_create(unsigned nchannels, double *coefs, unsigned ncoefs,
@@ -70,18 +67,14 @@ int lsx_fir_start(lsx_fir_t *state)
     int i;
     if (state->nchannels == 1)
 	state->use_threads = sox_false;
-    __try {
-	for (i = 0; i < state->nchannels; ++i)
-	    start(&state->dft[i]);
-	if (lsx_init_threads(&state->thread, state->use_threads,
-			     state->nchannels, 0, flow_channel) < 0)
-	    return -1;
-	for (i = 0; i < state->nchannels; ++i)
-	    state->thread.pth[i].ctx = &state->dft[i];
-	return 0;
-    } __except (HANDLE_NO_MEMORY) {
+    for (i = 0; i < state->nchannels; ++i)
+	start(&state->dft[i]);
+    if (lsx_init_threads(&state->thread, state->use_threads,
+			 state->nchannels, 0, flow_channel) < 0)
 	return -1;
-    }
+    for (i = 0; i < state->nchannels; ++i)
+	state->thread.pth[i].ctx = &state->dft[i];
+    return 0;
 }
 
 int lsx_fir_process(lsx_fir_t *state, const float *ibuf, float *obuf,
@@ -101,13 +94,9 @@ int lsx_fir_process_noninterleaved(lsx_fir_t *state, const float * const *ibuf,
 
 static int flow_channel(per_thread_state_t *pth)
 {
-    __try {
-	dft_filter_priv_t *dft = (dft_filter_priv_t*)pth->ctx;
-	if (!pth->ilen)
-	    return drain(dft, pth->obuf, &pth->olen);
-	else
-	    return flow(dft, pth->ibuf, pth->obuf, &pth->ilen, &pth->olen);
-    } __except (HANDLE_NO_MEMORY) {
-	return -1;
-    }
+    dft_filter_priv_t *dft = (dft_filter_priv_t*)pth->ctx;
+    if (!pth->ilen)
+	return drain(dft, pth->obuf, &pth->olen);
+    else
+	return flow(dft, pth->ibuf, pth->obuf, &pth->ilen, &pth->olen);
 }
