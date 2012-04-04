@@ -82,7 +82,7 @@ static int lsx_lpf_num_taps(double att, double tr_bw, int k)
     double n160 = (.0425* att - 1.4) / tr_bw;   /* Half order for att = 160 */
     n = n160 * (16.556 / (att - 39.6) + .8625) + .5;  /* For att [80,160) */
   }
-  return k? 2 * n : 2 * (n + (n & 1)) + 1; /* =1 %4 (0 phase 1/2 band) */
+  return k? 2 * n * k - 1 : 2 * (n + (n & 1)) + 1; /* =1 %4 (0 phase 1/2 band) */
 }
 
 double * lsx_design_lpf(
@@ -92,21 +92,21 @@ double * lsx_design_lpf(
     sox_bool allow_aliasing,
     double att,     /* Stop-band attenuation in dB */
     int * num_taps, /* (Single phase.)  0: value will be estimated */
-    int k)          /* Number of phases; 0 for single-phase */
+    int k,          /* Number of phases; 0 for single-phase */
+    double beta)
 {
-  double tr_bw, beta;
+  double tr_bw;
 
   if (allow_aliasing)
     Fc += (Fc - Fp) * LSX_TO_3dB;
   Fp /= Fn, Fc /= Fn;        /* Normalise to Fn = 1 */
   tr_bw = LSX_TO_6dB * (Fc-Fp); /* Transition band-width: 6dB to stop points */
 
+  if (beta < 0)
+    beta = lsx_kaiser_beta(att);
   if (!*num_taps)
     *num_taps = lsx_lpf_num_taps(att, tr_bw, k);
-  beta = lsx_kaiser_beta(att);
-  if (k)
-    *num_taps = *num_taps * k - 1;
-  else k = 1;
+  k = max(k, 1);
   return lsx_make_lpf(*num_taps, (Fc - tr_bw) / k, beta, (double)k, sox_true);
 }
 
@@ -196,8 +196,8 @@ void lsx_fir_to_phase(double * * h, int * len, int * post_len, double phase, fft
   else {
     begin = (.997 - (2 - phase1) * .22) * *len + .5;
     end   = (.997 + (0 - phase1) * .22) * *len + .5;
-    begin = peak - begin - (begin & 1);
-    end   = peak + 1 + end + (end & 1);
+    begin = peak - (begin & ~3);
+    end   = peak + 1 + ((end + 3) & ~3);
     *len = end - begin;
     *h = lsx_realloc(*h, *len * sizeof(**h));
   }
