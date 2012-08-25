@@ -24,7 +24,7 @@
 struct lsx_rate_state_tag {
     int nchannels;
     sox_rate_t factor;
-    quality_t quality;
+    int quality;
     int phase;
     double bandwidth;
     sox_bool allow_aliasing;
@@ -54,7 +54,7 @@ lsx_rate_t *lsx_rate_create(unsigned nchannels,
 	return 0;
     state->nchannels = nchannels;
     state->factor = (double)in_rate / out_rate;
-    state->quality = Very;
+    state->quality = 4;
     state->phase = 50; // linear;
     state->use_threads = sox_true;
     return state;
@@ -105,15 +105,31 @@ int lsx_rate_config(lsx_rate_t *state, enum lsx_rate_config_e type, ...)
     return err;
 }
 
+static void
+rate_init_orig(rate_t * p, rate_shared_t * shared, double factor,
+	       int quality, int interp_order, double phase,
+	       double bandwidth, sox_bool allow_aliasing)
+{
+    int bit_depth = 16 + 4 * max(quality - 3, 0);
+    int rolloff = quality <= 2 ? rolloff_medium : rolloff_small;
+    double rej = bit_depth * linear_to_dB(2.);
+    double bw_3dB_pc = bandwidth;
+    double bw_0dB_pc = 100 - (100 - bw_3dB_pc) / TO_3dB(rej);
+    double anti_aliasing_pc = allow_aliasing ? bw_3dB_pc : 100;
+    rate_init(p, shared, factor, bit_depth, phase, bw_0dB_pc,
+	      anti_aliasing_pc, rolloff, sox_true,
+	      sox_false, -1, 400, sox_false);
+}
+
 int lsx_rate_start(lsx_rate_t *state)
 {
     int i;
     if (state->nchannels == 1)
 	state->use_threads = sox_false;
     for (i = 0; i < state->nchannels; ++i)
-	rate_init(&state->rate[i], &state->shared, state->factor,
-		  state->quality, -1, state->phase, state->bandwidth,
-		  state->allow_aliasing);
+	rate_init_orig(&state->rate[i], &state->shared, state->factor,
+		       state->quality, -1, state->phase, state->bandwidth,
+		       state->allow_aliasing);
     if (lsx_init_threads(&state->thread, state->use_threads,
 			 state->nchannels, 0, flow_channel) < 0)
 	return -1;

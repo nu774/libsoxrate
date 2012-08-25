@@ -45,6 +45,9 @@
 #define assert_static(e,f) enum {assert_static__##f = 1/(e)}
 #define array_length(a) (sizeof(a)/sizeof(a[0]))
 
+#define lsx_is_power_of_2(x) !(x < 2 || (x & (x - 1)))
+#define linear_to_dB(x) (log10(x) * 20)
+
 typedef enum sox_bool {
     sox_false,
     sox_true
