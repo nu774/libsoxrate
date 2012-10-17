@@ -56,6 +56,7 @@ lsx_rate_t *lsx_rate_create(unsigned nchannels,
     state->factor = (double)in_rate / out_rate;
     state->quality = 4;
     state->phase = 50; // linear;
+    state->bandwidth = 95.0;
     state->use_threads = sox_true;
     return state;
 }
