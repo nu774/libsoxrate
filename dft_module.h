@@ -84,12 +84,30 @@ int lsx_fir_process(lsx_fir_t *state, const float *ibuf, float *obuf,
 					    ilen, olen);
 }
 
+int lsx_fir_process_double(lsx_fir_t *state, const double *ibuf, double *obuf,
+			   size_t *ilen, size_t *olen)
+{
+    return lsx_process_threaded_interleaved_double(&state->thread, ibuf, obuf,
+						   ilen, olen);
+}
+
 int lsx_fir_process_noninterleaved(lsx_fir_t *state, const float * const *ibuf,
 				   float **obuf, size_t *ilen, size_t *olen,
 				   size_t istride, size_t ostride)
 {
     return lsx_process_threaded_noninterleaved(&state->thread, ibuf, obuf,
 					       ilen, olen, istride, ostride);
+}
+
+int lsx_fir_process_noninterleaved_double(lsx_fir_t *state,
+					  const float * const *ibuf,
+					  float **obuf, size_t *ilen,
+					  size_t *olen, size_t istride,
+					  size_t ostride)
+{
+    return lsx_process_threaded_noninterleaved_double(&state->thread, ibuf,
+						      obuf, ilen, olen,
+						      istride, ostride);
 }
 
 static int flow_channel(per_thread_state_t *pth)

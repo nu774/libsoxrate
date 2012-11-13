@@ -216,16 +216,63 @@ int lsx_process_threaded_noninterleaved(lsx_thread_state_t *state,
 	state->pth[n].ilen = count;
 	state->pth[n].olen = min(*olen, IO_BUFSIZE);
     }
-    for (i = 0; i < count; ++i)
-	for (n = 0; n < state->count; ++n)
+    for (n = 0; n < state->count; ++n)
+	for (i = 0; i < count; ++i)
 	    state->pth[n].ibuf[i] = ibuf[n][i * istride];
 
     if (run_filter(state) < 0)
 	return -1;
 
-    for (i = 0; i < state->pth[0].olen; ++i)
-	for (n = 0; n < state->count; ++n)
+    for (n = 0; n < state->count; ++n)
+	for (i = 0; i < state->pth[0].olen; ++i)
 	    obuf[n][i * ostride] = quantize(state->pth[n].obuf[i]);
+    if (ilen && *ilen)
+	*ilen = state->pth[0].ilen;
+    *olen = state->pth[0].olen;
+    return 0;
+}
+
+int lsx_process_threaded_interleaved_double(lsx_thread_state_t *state,
+					    const double *ibuf, double *obuf,
+					    size_t *ilen, size_t *olen)
+{
+    int n;
+    double **ivec = alloca(sizeof(double*) * state->count);
+    double **ovec = alloca(sizeof(double*) * state->count);
+    for (n = 0; n < state->count; ++n) {
+	ivec[n] = ibuf + n;
+	ovec[n] = obuf + n;
+    }
+    return lsx_process_threaded_noninterleaved_double(state, ivec, ovec,
+						      ilen, olen,
+						      state->count,
+						      state->count);
+}
+
+int lsx_process_threaded_noninterleaved_double(lsx_thread_state_t *state,
+					       const double * const *ibuf,
+					       double **obuf, size_t *ilen,
+					       size_t *olen, size_t istride,
+					       size_t ostride)
+{
+    int n;
+    size_t i;
+
+    size_t count = ilen ? min(*ilen, IO_BUFSIZE) : 0;
+    for (n = 0; n < state->count; ++n) {
+	state->pth[n].ilen = count;
+	state->pth[n].olen = min(*olen, IO_BUFSIZE);
+    }
+    for (n = 0; n < state->count; ++n)
+	for (i = 0; i < count; ++i)
+	    state->pth[n].ibuf[i] = ibuf[n][i * istride];
+
+    if (run_filter(state) < 0)
+	return -1;
+
+    for (n = 0; n < state->count; ++n)
+	for (i = 0; i < state->pth[0].olen; ++i)
+	    obuf[n][i * ostride] = state->pth[n].obuf[i];
     if (ilen && *ilen)
 	*ilen = state->pth[0].ilen;
     *olen = state->pth[0].olen;

@@ -9,7 +9,7 @@ std::string to_utf8(const std::wstring &ws)
     int size = WideCharToMultiByte(65001, 0, ws.c_str(), -1, 0, 0, 0, 0);
     std::vector<char> buffer(size);
     size = WideCharToMultiByte(65001, 0, ws.c_str(), -1, &buffer[0], size, 0, 0);
-    return std::string(&buffer[0], &buffer[size]);
+    return std::string(buffer.begin(), buffer.end());
 }
 
 int wmain1(int argc, wchar_t **argv)

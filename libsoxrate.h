@@ -93,11 +93,19 @@ int lsx_rate_start(lsx_rate_t *state);
 int lsx_rate_process(lsx_rate_t *state, const float *ibuf, float *obuf,
 		     size_t *ilen, size_t *olen);
 
+int lsx_rate_process_double(lsx_rate_t *state, const double *ibuf, double *obuf,
+			    size_t *ilen, size_t *olen);
+
 int lsx_rate_process_noninterleaved(lsx_rate_t *state,
 				    const float * const *ibuf,
 				    float **obuf, size_t *ilen, size_t *olen,
 				    size_t istride, size_t ostride);
 
+int lsx_rate_process_noninterleaved_double(lsx_rate_t *state,
+					   const double * const *ibuf,
+					   double **obuf, size_t *ilen,
+					   size_t *olen, size_t istride,
+					   size_t ostride);
 
 struct lsx_fir_state_tag;
 typedef struct lsx_fir_state_tag lsx_fir_t;
@@ -108,9 +116,16 @@ int lsx_fir_close(lsx_fir_t *state);
 int lsx_fir_start(lsx_fir_t *state);
 int lsx_fir_process(lsx_fir_t *state, const float *ibuf, float *obuf,
 		    size_t *ilen, size_t *olen);
+int lsx_fir_process_double(lsx_fir_t *state, const float *ibuf, float *obuf,
+			   size_t *ilen, size_t *olen);
 int lsx_fir_process_noninterleaved(lsx_fir_t *state, const float * const *ibuf,
 				   float **obuf, size_t *ilen, size_t *olen,
 				   size_t istride, size_t ostride);
+int lsx_fir_process_noninterleaved_double(lsx_fir_t *state,
+					  const double * const *ibuf,
+					  double **obuf, size_t *ilen,
+					  size_t *olen, size_t istride,
+					  size_t ostride);
 
 double * lsx_design_lpf(
     double Fp,      /* End of pass-band; ~= 0.01dB point */

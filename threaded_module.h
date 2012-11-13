@@ -52,4 +52,11 @@ int lsx_process_threaded_noninterleaved(lsx_thread_state_t *state,
 					float **obuf,
 					size_t *ilen, size_t *olen,
 					size_t istride, size_t ostride);
-
+int lsx_process_threaded_interleaved_double(lsx_thread_state_t *state,
+					    const double *ibuf, double *obuf,
+					    size_t *ilen, size_t *olen);
+int lsx_process_threaded_noninterleaved_double(lsx_thread_state_t *state,
+					       const double * const *ibuf,
+					       double **obuf, size_t *ilen,
+					       size_t *olen, size_t istride,
+					       size_t ostride);

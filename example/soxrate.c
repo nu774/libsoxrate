@@ -147,18 +147,18 @@ double get_time()
 void process_file(const file_t *file, const option_t *opts)
 {
 #define BS 0x4000
-    float *ibuf = 0, *obuf = 0, *ip;
+    double *ibuf = 0, *obuf = 0, *ip;
     sf_count_t count = 0, total = 0;
     size_t nch = file->iinfo.channels;
     int eof = 0;
     lsx_rate_t *conv = 0;
     double start, last, now;
 
-    if (!(ibuf = malloc(sizeof(float) * BS * file->iinfo.channels))) {
+    if (!(ibuf = malloc(sizeof(double) * BS * file->iinfo.channels))) {
 	fputs("ERROR: malloc()\n", stderr);
 	goto done;
     }
-    if (!(obuf = malloc(sizeof(float) * BS * file->iinfo.channels))) {
+    if (!(obuf = malloc(sizeof(double) * BS * file->iinfo.channels))) {
 	fputs("ERROR: malloc()\n", stderr);
 	goto done;
     }
@@ -178,7 +178,7 @@ void process_file(const file_t *file, const option_t *opts)
 	size_t ilen, olen;
 
 	if (!eof && !count) {
-	    count = sf_readf_float(file->ifile, ibuf, BS);
+	    count = sf_readf_double(file->ifile, ibuf, BS);
 	    total += count;
 	    ip = ibuf;
 	    if (!count) eof = 1;
@@ -195,17 +195,24 @@ void process_file(const file_t *file, const option_t *opts)
 	}
 	ilen = count;
 	olen = BS;
-	if (lsx_rate_process(conv, ip, obuf, &ilen, &olen) < 0) {
+	if (lsx_rate_process_double(conv, ip, obuf, &ilen, &olen) < 0) {
 	    fputs("\nERROR: lsx_rate_process()\n", stderr);
 	    break;
 	}
+#if 0
+	{
+	    FILE *fp = fopen("soxrate.log", "a");
+	    fprintf(fp, "in %d\tout %d\n", ilen, olen);
+	    fclose(fp);
+	}
+#endif
 	if (!count && !olen) {
 	    fputs("...done\n", stderr);
 	    break;
 	}
 	ip += ilen * nch;
 	count -= ilen;
-	sf_writef_float(file->ofile, obuf, olen);
+	sf_writef_double(file->ofile, obuf, olen);
     }
 done:
     if (conv) lsx_rate_close(conv);
