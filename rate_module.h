@@ -163,8 +163,8 @@ int lsx_rate_process_noninterleaved(lsx_rate_t *state,
 }
 
 int lsx_rate_process_noninterleaved_double(lsx_rate_t *state,
-					   const float * const *ibuf,
-					   float **obuf, size_t *ilen,
+					   const double * const *ibuf,
+					   double **obuf, size_t *ilen,
 					   size_t *olen, size_t istride,
 					   size_t ostride)
 {

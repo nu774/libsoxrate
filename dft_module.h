@@ -100,8 +100,8 @@ int lsx_fir_process_noninterleaved(lsx_fir_t *state, const float * const *ibuf,
 }
 
 int lsx_fir_process_noninterleaved_double(lsx_fir_t *state,
-					  const float * const *ibuf,
-					  float **obuf, size_t *ilen,
+					  const double * const *ibuf,
+					  double **obuf, size_t *ilen,
 					  size_t *olen, size_t istride,
 					  size_t ostride)
 {

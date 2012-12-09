@@ -116,7 +116,7 @@ int lsx_fir_close(lsx_fir_t *state);
 int lsx_fir_start(lsx_fir_t *state);
 int lsx_fir_process(lsx_fir_t *state, const float *ibuf, float *obuf,
 		    size_t *ilen, size_t *olen);
-int lsx_fir_process_double(lsx_fir_t *state, const float *ibuf, float *obuf,
+int lsx_fir_process_double(lsx_fir_t *state, const double *ibuf, double *obuf,
 			   size_t *ilen, size_t *olen);
 int lsx_fir_process_noninterleaved(lsx_fir_t *state, const float * const *ibuf,
 				   float **obuf, size_t *ilen, size_t *olen,
