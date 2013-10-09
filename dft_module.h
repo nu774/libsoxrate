@@ -114,7 +114,7 @@ static int flow_channel(per_thread_state_t *pth)
 {
     dft_filter_priv_t *dft = (dft_filter_priv_t*)pth->ctx;
     if (!pth->ilen)
-	return drain(dft, pth->obuf, &pth->olen);
+	return drain(dft, pth->obuf._, &pth->olen);
     else
-	return flow(dft, pth->ibuf, pth->obuf, &pth->ilen, &pth->olen);
+	return flow(dft, pth->ibuf._, pth->obuf._, &pth->ilen, &pth->olen);
 }

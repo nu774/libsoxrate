@@ -202,6 +202,18 @@ int lsx_process_threaded_interleaved(lsx_thread_state_t *state,
 					       state->count, state->count);
 }
 
+static unsigned roundup(unsigned n)
+{
+    n--;
+    n |= n >> 1;
+    n |= n >> 2;
+    n |= n >> 4;
+    n |= n >> 8;
+    n |= n >> 16;
+    n++;
+    return n;
+}
+
 int lsx_process_threaded_noninterleaved(lsx_thread_state_t *state,
 					const float * const *ibuf,
 					float **obuf,
@@ -210,22 +222,36 @@ int lsx_process_threaded_noninterleaved(lsx_thread_state_t *state,
 {
     int n;
     size_t i;
+    unsigned count = ilen ? *ilen : 0;
 
-    size_t count = ilen ? min(*ilen, IO_BUFSIZE) : 0;
+    if (count > state->pth[0].ibuf.size) {
+        for (n = 0; n < state->count; ++n) {
+            unsigned size = state->pth[n].ibuf.size = roundup(count);
+            state->pth[n].ibuf._ = realloc(state->pth[n].ibuf._,
+                                           sizeof(double) * size);
+        }
+    }
+    if (*olen > state->pth[0].obuf.size) {
+        for (n = 0; n < state->count; ++n) {
+            unsigned size = state->pth[n].obuf.size = roundup(*olen);
+            state->pth[n].obuf._ = realloc(state->pth[n].obuf._,
+                                           sizeof(double) * size);
+        }
+    }
     for (n = 0; n < state->count; ++n) {
 	state->pth[n].ilen = count;
-	state->pth[n].olen = min(*olen, IO_BUFSIZE);
+	state->pth[n].olen = *olen;
     }
     for (n = 0; n < state->count; ++n)
 	for (i = 0; i < count; ++i)
-	    state->pth[n].ibuf[i] = ibuf[n][i * istride];
+	    state->pth[n].ibuf._[i] = ibuf[n][i * istride];
 
     if (run_filter(state) < 0)
 	return -1;
 
     for (n = 0; n < state->count; ++n)
 	for (i = 0; i < state->pth[0].olen; ++i)
-	    obuf[n][i * ostride] = quantize(state->pth[n].obuf[i]);
+	    obuf[n][i * ostride] = quantize(state->pth[n].obuf._[i]);
     if (ilen && *ilen)
 	*ilen = state->pth[0].ilen;
     *olen = state->pth[0].olen;
@@ -257,22 +283,36 @@ int lsx_process_threaded_noninterleaved_double(lsx_thread_state_t *state,
 {
     int n;
     size_t i;
+    unsigned count = ilen ? *ilen : 0;
 
-    size_t count = ilen ? min(*ilen, IO_BUFSIZE) : 0;
+    if (count > state->pth[0].ibuf.size) {
+        for (n = 0; n < state->count; ++n) {
+            unsigned size = state->pth[n].ibuf.size = roundup(count);
+            state->pth[n].ibuf._ = realloc(state->pth[n].ibuf._,
+                                           sizeof(double) * size);
+        }
+    }
+    if (*olen > state->pth[0].obuf.size) {
+        for (n = 0; n < state->count; ++n) {
+            unsigned size = state->pth[n].obuf.size = roundup(*olen);
+            state->pth[n].obuf._ = realloc(state->pth[n].obuf._,
+                                           sizeof(double) * size);
+        }
+    }
     for (n = 0; n < state->count; ++n) {
 	state->pth[n].ilen = count;
-	state->pth[n].olen = min(*olen, IO_BUFSIZE);
+	state->pth[n].olen = min(*olen, state->pth[n].obuf.size);
     }
     for (n = 0; n < state->count; ++n)
 	for (i = 0; i < count; ++i)
-	    state->pth[n].ibuf[i] = ibuf[n][i * istride];
+	    state->pth[n].ibuf._[i] = ibuf[n][i * istride];
 
     if (run_filter(state) < 0)
 	return -1;
 
     for (n = 0; n < state->count; ++n)
 	for (i = 0; i < state->pth[0].olen; ++i)
-	    obuf[n][i * ostride] = state->pth[n].obuf[i];
+	    obuf[n][i * ostride] = state->pth[n].obuf._[i];
     if (ilen && *ilen)
 	*ilen = state->pth[0].ilen;
     *olen = state->pth[0].olen;

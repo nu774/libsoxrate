@@ -179,11 +179,11 @@ static int flow_channel(per_thread_state_t *pth)
     size_t odone = pth->olen;
     if (!pth->ilen)
 	rate_flush(rate);
-    rate_output(rate, pth->obuf, &odone);
+    rate_output(rate, pth->obuf._, &odone);
     if (!pth->ilen || odone == pth->olen)
 	pth->ilen = 0;
     else {
-	rate_input(rate, pth->ibuf, pth->ilen);
+	rate_input(rate, pth->ibuf._, pth->ilen);
 	rate_process(rate);
     }
     pth->olen = odone;

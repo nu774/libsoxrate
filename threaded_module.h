@@ -8,8 +8,6 @@
 #endif
 #include "soxint.h"
 
-enum { IO_BUFSIZE = 4096 };
-
 #ifdef _WIN32
 typedef HANDLE event_t;
 typedef HANDLE pthread_t;
@@ -22,6 +20,11 @@ struct event_tag {
 typedef struct event_tag *event_t;
 #endif
 
+typedef struct a_double {
+    double *_;
+    unsigned size;
+} a_double;
+
 typedef struct per_thread_state_tag {
     pthread_t ht;
     event_t evpro, evcon;
@@ -32,7 +35,7 @@ typedef struct per_thread_state_tag {
     void *ctx;
     int (*flow)(struct per_thread_state_tag *);
     size_t ilen, olen;
-    double ibuf[IO_BUFSIZE], obuf[IO_BUFSIZE];
+    a_double ibuf, obuf;
 } per_thread_state_t;
 
 typedef struct lsx_thread_state_tag {
